@@ -21,6 +21,7 @@ const initialization = (server) => {
         'http://localhost:5173',
         'https://localhost:5173',
         'https://a55e-197-2-85-89.ngrok-free.app',
+        'https://mern-application-1-fozj.onrender.com'
       ],
       methods: ['GET', 'POST'],
       credentials: true,
