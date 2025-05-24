@@ -21,6 +21,12 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
+    origin: [
+      'http://localhost:5173',
+      'https://localhost:5173',
+      'https://d37e-102-158-204-170.ngrok-free.app',
+      'https://mern-application-1-fozj.onrender.com'
+    ],
     credentials: true,
   })
 );
