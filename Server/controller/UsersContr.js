@@ -4,8 +4,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-const secretkey = process.env.secret_jwt;
-const salt = Number(process.env.salt_c);
+const secretkey = process.env.SECRET_JWT;
+const salt = Number(process.env.SALT_C);
 exports.verifyEmailU = async (req, res) => {
   const { token } = req.params;
   try {
