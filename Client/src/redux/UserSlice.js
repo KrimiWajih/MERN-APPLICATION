@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
 
-const apiUrl = "https://mern-application-w42i.onrender.com/";
+const apiUrl = "/api/";
 const initialState = {
   UserInfo: [],
   AllUsers : [],
