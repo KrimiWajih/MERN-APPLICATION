@@ -6,6 +6,7 @@ const database = process.env.mongo_url
 exports.connectDB =async ()=>{
     try {
        await mongoose.connect(database)
+        console.log('Mongo URI on Render:', process.env.MONGO_URI);
         console.log("Connected to Database")
     } catch (error) {
         console.log("Failed to Connect to Database")
