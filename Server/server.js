@@ -24,6 +24,7 @@ app.use(
     origin: [
       'http://localhost:5173',
       'https://localhost:5173',
+      'https://mern-application-1-fozj.onrender.com'
     ],
     credentials: true,
   })
