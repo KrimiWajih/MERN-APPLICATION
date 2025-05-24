@@ -8,19 +8,19 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/spotify': {
-        target: 'http://localhost:5000',
+        target: 'https://mern-application-w42i.onrender.com',
         changeOrigin: true,
         secure: false,
       },
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://mern-application-w42i.onrender.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''), // Strips /api prefix
       },
       '/socket.io': {
         // Explicitly proxy Socket.IO WebSocket requests
-        target: 'http://localhost:5000',
+        target: 'https://mern-application-w42i.onrender.com',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -28,7 +28,13 @@ export default defineConfig({
     },
     allowedHosts: [
       'localhost',
-      'a55e-197-2-85-89.ngrok-free.app',
+      'd37e-102-158-204-170.ngrok-free.app',
+      'coruscating-genie-70b898.netlify.app',
+      'mern-application-w42i.onrender.com',
+      'mern-application-1-fozj.onrender.com'
     ],
+  },
+   build: {
+    chunkSizeWarningLimit: 1000, // Increase limit to 1000 kB
   },
 })
