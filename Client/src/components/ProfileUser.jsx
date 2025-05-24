@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getComments, getCurrent, getPosts } from "../redux/UserSlice";
+import { getComments, getPosts } from "../redux/UserSlice";
 import PostUser from "./PostUser";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -18,9 +18,6 @@ const ProfileUser = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [friendState, setFriendState] = useState("not_friend");
 
-
-
- 
   useEffect(() => {
     if (!UserInfo || !userID) return;
 
@@ -28,13 +25,9 @@ const ProfileUser = () => {
       navigate("/profile", { replace: true });
       return;
     }
-
-
     const fetchUserAndPosts = async () => {
       try {
-        
         const [userRes, postsRes] = await Promise.all([
-     
           axios.get(`/api/users/${userID}`, { withCredentials: true }),
           axios.get(`/api/userposts/${userID}`, { withCredentials: true }),
         ]);
@@ -77,7 +70,9 @@ const ProfileUser = () => {
       toast.success(Msg);
       setIsFollowing(Res === "follow");
     } catch (error) {
-      toast.error(error.response?.data?.Msg || "Failed to update follow status");
+      toast.error(
+        error.response?.data?.Msg || "Failed to update follow status"
+      );
     }
   };
 
@@ -105,7 +100,9 @@ const ProfileUser = () => {
         toast.success("Unfriended successfully");
       }
     } catch (error) {
-      toast.error(error.response?.data?.Msg || "Failed to update friend status");
+      toast.error(
+        error.response?.data?.Msg || "Failed to update friend status"
+      );
     }
   };
 
@@ -117,14 +114,33 @@ const ProfileUser = () => {
 
       {User && (
         <div className="flex flex-col items-center mb-8 border-b border-gray-300 pb-6">
-          <img
-            src={User.profilepic || "https://via.placeholder.com/150"}
-            alt="Profile"
-            className="w-28 h-28 rounded-full object-cover mb-4 border-4 border-indigo-500 shadow-md"
-          />
-          <h2 className="text-2xl font-bold text-gray-900">{User.username}</h2>
-          <p className="text-gray-600 mt-2 text-center">{User.bio}</p>
-
+          {/* Cover picture container */}
+          <div
+            className="w-full h-48 bg-gray-200 relative"
+            style={{
+              backgroundImage: `url(${
+                User.coverpic || "https://via.placeholder.com/1200x300"
+              })`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            {/* Profile picture positioned over cover picture */}
+            <div className="absolute -bottom-14 left-1/2 transform -translate-x-1/2">
+              <img
+                src={User.profilepic || "https://via.placeholder.com/150"}
+                alt="Profile"
+                className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md"
+              />
+            </div>
+          </div>
+          {/* User info below cover and profile pictures */}
+          <div className="mt-16 text-center">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {User.username}
+            </h2>
+            <p className="text-gray-600 mt-2">{User.bio}</p>
+          </div>
           {UserInfo?._id !== userID && (
             <div className="flex gap-4 mt-4">
               <button
@@ -154,7 +170,7 @@ const ProfileUser = () => {
 
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">Posts</h2>
-        { Posts && Posts.length > 0 ? (
+        {Posts && Posts.length > 0 ? (
           Posts.map((post) => (
             <div
               key={post._id}

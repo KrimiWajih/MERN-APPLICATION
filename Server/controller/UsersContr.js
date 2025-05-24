@@ -136,17 +136,24 @@ exports.getCurrent = async (req, res) => {
 
 
 exports.EditProfile = async (req, res) => {
- 
   try {
     const userId = req.user.id || req.user; // Handle req.user as object or ID
-    const { profilepic } = req.body;
- console.log(profilepic)
-    // Validate input
-    if (!profilepic) {
-      return res.status(400).json({ Msg: "Profile picture URL is required" });
+    const { profilepic, coverpic, bio } = req.body;
+
+    // Validate input: at least one field must be provided
+    if (!profilepic && !coverpic && !bio) {
+      return res.status(400).json({ Msg: "At least one of profile picture, cover picture, or bio is required" });
     }
-    if (typeof profilepic !== "string" || !profilepic.startsWith("https://res.cloudinary.com")) {
+
+    // Validate URLs if provided
+    if (profilepic && (typeof profilepic !== "string" || !profilepic.startsWith("https://res.cloudinary.com"))) {
       return res.status(400).json({ Msg: "Invalid profile picture URL" });
+    }
+    if (coverpic && (typeof coverpic !== "string" || !coverpic.startsWith("https://res.cloudinary.com"))) {
+      return res.status(400).json({ Msg: "Invalid cover picture URL" });
+    }
+    if (bio && (typeof bio !== "string" || bio.length > 160)) {
+      return res.status(400).json({ Msg: "Bio must be a string and not exceed 160 characters" });
     }
 
     // Update user
@@ -155,7 +162,10 @@ exports.EditProfile = async (req, res) => {
       return res.status(404).json({ Msg: "User not found" });
     }
 
-    FoundUser.profilepic = profilepic;
+    // Update provided fields
+    if (profilepic) FoundUser.profilepic = profilepic;
+    if (coverpic) FoundUser.coverpic = coverpic;
+    if (bio !== undefined) FoundUser.bio = bio; // Allow empty string to clear bio
     await FoundUser.save();
 
     // Return updated user data
@@ -164,6 +174,7 @@ exports.EditProfile = async (req, res) => {
       username: FoundUser.username,
       name: FoundUser.name,
       profilepic: FoundUser.profilepic,
+      coverpic: FoundUser.coverpic,
       bio: FoundUser.bio,
     };
 

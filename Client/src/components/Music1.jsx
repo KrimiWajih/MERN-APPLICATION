@@ -17,7 +17,7 @@ import {
   MagnifyingGlassIcon,
   ShareIcon
 } from '@heroicons/react/24/solid';
-import { getAllUsers,getCurrent } from '../redux/UserSlice';
+import { getAllUsers } from '../redux/UserSlice';
 
 export default function Music1() {
   const { player, deviceId, progress, setProgress, isReady } = useContext(SpotifyPlayerContext);

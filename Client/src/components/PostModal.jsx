@@ -1,62 +1,78 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Image } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { getCurrent, getFPosts } from "../redux/UserSlice";
+import { toast } from "react-toastify";
 
 const PostModal = ({ isOpen, onClose }) => {
   const [postText, setPostText] = useState("");
-  const [image, setImage] = useState(null);
-  const { UserInfo, FPosts, Loading } = useSelector((state) => state.userdata);
+  const [images, setImages] = useState([]); // Array for multiple images
+  const { UserInfo } = useSelector((state) => state.userdata);
   const dispatch = useDispatch();
+  const imageRef = useRef(null);
 
   useEffect(() => {
     dispatch(getCurrent()); // Fetch current user info
-    dispatch(getFPosts()); // Fetch friends' posts
   }, [dispatch]);
 
-  if (!isOpen) return null; // Don't render the modal if it's closed
+  if (!isOpen) return null;
+
+  const handleImageChange = (e) => {
+    setImages(Array.from(e.target.files)); // Store multiple files
+  };
 
   const handlePostSubmit = async () => {
-    const postData = {
-      content: postText,
-      userID: UserInfo?._id, // Assuming UserInfo contains user ID
-    };
+    if (!postText.trim() && images.length === 0) {
+      toast.error("Post content or at least one image is required");
+      return;
+    }
 
-    // If there's an image, append it to the form data
-    if (image) {
-      const formData = new FormData();
-      formData.append("content", postText);
-      formData.append("userID", UserInfo?._id);
-      formData.append("image", image); // Add the image to form data
+    if (!UserInfo?._id) {
+      toast.error("Please log in to post");
+      return;
+    }
 
-      try {
-        const response = await axios.post(
-          "api/addpost",
-          formData,
-          { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } }
-        );
-   
-        console.log("Post submitted:", response.data);
-        setPostText(""); // Reset the post text area
-        setImage(null); // Reset the image after posting
-        onClose(); // Close the modal after post
-      } catch (error) {
-        console.error("Error submitting post:", error);
+    try {
+      const imageLinks = [];
+      if (images.length > 0) {
+        for (const img of images) {
+          const formData = new FormData();
+          formData.append("upload_preset", "krimiwa");
+          formData.append("file", img);
+          const res = await axios.post(
+            "https://api.cloudinary.com/v1_1/dliy8blry/upload",
+            formData
+          );
+          if (typeof res.data.secure_url !== "string") {
+            throw new Error("Invalid Cloudinary URL");
+          }
+          imageLinks.push(res.data.secure_url);
+        }
+        console.log("Cloudinary image URLs:", imageLinks);
       }
-    } else {
-      try {
-        const response = await axios.post(
-          "api/addpost",
-          postData,
-          { withCredentials: true }
-        );
-        console.log("Post submitted:", response.data);
-        setPostText(""); // Reset the post text area
-        onClose(); // Close the modal after post
-      } catch (error) {
-        console.error("Error submitting post:", error);
-      }
+
+      const postData = {
+        content: postText,
+        userID: UserInfo._id,
+        media: imageLinks,
+      };
+
+      const response = await axios.post("/api/addpost", postData, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      });
+      console.log("Post submitted:", response.data);
+      toast.success("Post created successfully!");
+
+      setPostText("");
+      setImages([]);
+      if (imageRef.current) imageRef.current.value = "";
+      dispatch(getFPosts()); // Refresh posts
+      onClose();
+    } catch (error) {
+      console.error("Error submitting post:", error.response?.data || error.message);
+      toast.error(error.response?.data?.Msg || "Failed to create post");
     }
   };
 
@@ -71,7 +87,7 @@ const PostModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Post Content */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-md">
           <textarea
             className="w-full p-4 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             rows="4"
@@ -80,14 +96,17 @@ const PostModal = ({ isOpen, onClose }) => {
             onChange={(e) => setPostText(e.target.value)}
           ></textarea>
 
-          {/* Image Preview */}
-          {image && (
-            <div className="mb-4">
-              <img
-                src={URL.createObjectURL(image)}
-                alt="Post Preview"
-                className="w-full h-auto rounded-lg"
-              />
+          {/* Image Previews */}
+          {images.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              {images.map((img, index) => (
+                <img
+                  key={index}
+                  src={URL.createObjectURL(img)}
+                  alt={`Preview ${index}`}
+                  className="w-full h-32 object-cover rounded-lg"
+                />
+              ))}
             </div>
           )}
 
@@ -98,12 +117,15 @@ const PostModal = ({ isOpen, onClose }) => {
               className="flex items-center cursor-pointer"
             >
               <Image className="w-6 h-6 text-indigo-500" />
-              <span className="ml-2 text-gray-600">Upload Image</span>
+              <span className="ml-2 text-gray-600">Upload Images</span>
             </label>
             <input
               id="image-upload"
               type="file"
-              onChange={(e) => setImage(e.target.files[0])}
+              accept="image/*"
+              multiple // Enable multiple file selection
+              onChange={handleImageChange}
+              ref={imageRef}
               className="hidden"
             />
 

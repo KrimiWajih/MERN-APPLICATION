@@ -1,0 +1,232 @@
+/* Ensure the component is fixed vertically with a specific width */
+.Messages-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+  position: fixed; /* Fix to viewport vertically */
+  top: 0; /* Stick to top of viewport */
+  width: 50%; /* Specific width, adjust as needed */
+  max-width: 90%; /* Prevent overflow on small screens */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Center adjust */
+  overflow: hidden; /* Prevent page-level scrolling */
+  background-color: #fff; /* Consistent background */
+  margin: 0; /* Remove default margins */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: subtle shadow */
+}
+
+/* Friends list: horizontal scrolling */
+.Messages-friends-list {
+  display: flex;
+  overflow-x: auto;
+  padding: 10px;
+  gap: 10px;
+  border-bottom: 2px solid #333;
+  white-space: nowrap;
+  max-height: 100px;
+  background-color: #f8f8f8;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #888 #f8f8f8;
+}
+
+.Messages-friends-list::-webkit-scrollbar {
+  height: 8px;
+}
+
+.Messages-friends-list::-webkit-scrollbar-track {
+  background: #f8f8f8;
+}
+
+.Messages-friends-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.Messages-friends-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.Messages-friends-list .friend-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px;
+  background-color: transparent;
+  border-radius: 8px;
+  min-width: 80px;
+  transition: background-color 0.2s;
+}
+
+.Messages-friends-list .friend-item.selected {
+  background-color: #e0e0e0;
+}
+
+.Messages-friends-list .friend-item .friend-item-image-container {
+  position: relative; /* For badge positioning */
+}
+
+.Messages-friends-list .friend-item img {
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 5px;
+}
+
+.Messages-friends-list .friend-item .unread-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4d4f; /* Red for visibility */
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.Messages-friends-list .friend-item p {
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Chat section: takes full width of Messages-container */
+.Messages-chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden; /* Prevent overflow */
+  padding: 10px;
+}
+
+/* Message list: only scrollable area */
+.Messages-chat-section .messages-list {
+  flex: 1;
+  overflow-y: auto; /* Vertical scrolling for messages */
+  padding-right: 10px;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #888 #fff;
+}
+
+.Messages-chat-section .messages-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.Messages-chat-section .messages-list::-webkit-scrollbar-track {
+  background: #fff;
+}
+
+.Messages-chat-section .messages-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.Messages-chat-section .messages-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.Messages-chat-section .messages-list .message {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.Messages-chat-section .messages-list .message.sent {
+  justify-content: flex-end;
+}
+
+.Messages-chat-section .messages-list .message.received {
+  justify-content: flex-start;
+}
+
+.Messages-chat-section .messages-list .message div {
+  max-width: 60%;
+  padding: 8px 12px;
+  border-radius: 18px;
+}
+
+.Messages-chat-section .messages-list .message.sent div {
+  background-color: rgb(62, 125, 250);
+}
+
+.Messages-chat-section .messages-list .message.received div {
+  background-color: #f1f0f0;
+}
+
+.Messages-chat-section .messages-list .message p {
+  margin: 0;
+}
+
+.Messages-chat-section .messages-list .no-messages {
+  color: #aaa;
+  text-align: center;
+}
+
+/* Input section */
+.Messages-chat-section .input-container {
+  display: flex;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.Messages-chat-section .input-container input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.Messages-chat-section .input-container button {
+  padding: 10px 16px;
+  border: none;
+  background-color: #4caf50;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.Messages-chat-section .input-container button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .Messages-container {
+    flex-direction: column;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    width: 90%; /* Slightly narrower for mobile */
+    max-width: 400px; /* Cap width for mobile */
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .Messages-friends-list {
+    max-height: 120px;
+  }
+
+  .Messages-chat-section {
+    width: 100%; /* Full width of Messages-container */
+  }
+
+  .Messages-chat-section .input-container input {
+    font-size: 12px;
+  }
+
+  .Messages-chat-section .input-container button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}

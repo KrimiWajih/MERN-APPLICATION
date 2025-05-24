@@ -18,10 +18,17 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''), // Strips /api prefix
       },
+      '/socket.io': {
+        // Explicitly proxy Socket.IO WebSocket requests
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
     allowedHosts: [
       'localhost',
-      '8cd4-41-230-191-27.ngrok-free.app',
+      'a55e-197-2-85-89.ngrok-free.app',
     ],
   },
 })

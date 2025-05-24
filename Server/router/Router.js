@@ -41,6 +41,7 @@ const {
   getComment,
   getCommentsByUser,
 } = require("../controller/CommetContr");
+const { getMessage } = require("../controller/MessageControl");
 
 const URouter = express.Router();
 
@@ -77,4 +78,8 @@ URouter.delete("/deletecomment", isauth, DeleteComment);
 URouter.get("/comments/:postID", isauth, getComments);
 URouter.get("/comment/:commentID", isauth, getComment);
 URouter.get("/commentbyuser/:userID", isauth, getCommentsByUser);
+
+URouter.get("/message/:senderID/:recieverID" ,isauth, getMessage)
+
+
 module.exports = URouter;
