@@ -9,6 +9,7 @@ exports.connectDB =async ()=>{
         console.log('Mongo URI on Render:', process.env.MONGO_URI);
         console.log("Connected to Database")
     } catch (error) {
+        console.log('Mongo URI on Render:', process.env.MONGO_URI);
         console.log("Failed to Connect to Database")
     }
 }
