@@ -15,14 +15,14 @@ export default defineConfig({
       '/api': {
         target: 'https://mern-application-w42i.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (path) => path.replace(/^\/api/, ''), // Strips /api prefix
       },
       '/socket.io': {
         // Explicitly proxy Socket.IO WebSocket requests
         target: 'https://mern-application-w42i.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         ws: true,
       },
     },
