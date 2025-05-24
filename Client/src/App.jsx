@@ -11,7 +11,7 @@ import Profile from './components/Profile';
 import Music from './components/Music';
 import Friends from './components/Friends';
 import Home from './components/Home';
-import Signup from './components/Signup';
+import Signup from './components/SignUp';
 
 import { ToastContainer } from 'react-toastify';
 import VerifyAccount from './components/VerifyAccount';
