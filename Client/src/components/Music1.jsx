@@ -66,7 +66,7 @@ export default function Music1() {
 
     try {
       const response = await axios.post(
-        'https://mern-application-w42i.onrender.com/addpost',
+        '/api/addpost',
         {
           content: postContent,
           userID: UserInfo._id,
