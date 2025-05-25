@@ -18,7 +18,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cookieParser());
+
 app.use(
   cors({
     origin: [
@@ -29,7 +29,7 @@ app.use(
     credentials: true,
   })
 );
-
+app.use(cookieParser());
 const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const scope =
