@@ -65,7 +65,7 @@ exports.signupuser = async (req, res) => {
         html: `
             <h1>Welcome to our website</h1>
             <p>Please verify your account by clicking the link below:</p>
-            <a href="http://localhost:5173/verifyaccount/${token}">Verify Account</a>
+            <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
           `,
       };
       try {
