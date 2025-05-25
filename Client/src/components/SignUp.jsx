@@ -33,8 +33,9 @@ export default function Signup() {
           withCredentials: true,
         }
       );
+       toast.success("Verify your email");
       console.log("Signup response:", response);
-      toast.success("Verify your email"); // Updated toast message
+
       revalidate();
       navigate("/"); // Redirect to root route
     } catch (error) {
