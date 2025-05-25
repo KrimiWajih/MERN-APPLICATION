@@ -15,17 +15,18 @@ import {
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
   MagnifyingGlassIcon,
-  ShareIcon
+  ShareIcon,
 } from '@heroicons/react/24/solid';
 import { getAllUsers } from '../redux/UserSlice';
 
 export default function Music1() {
   const { player, deviceId, progress, setProgress, isReady } = useContext(SpotifyPlayerContext);
-  // Updated: Access AllUsers from state.connectedUser
-  const { AllUsers,UserInfo, error } = useSelector((state) => state.userdata);
+  const { AllUsers, UserInfo, error } = useSelector((state) => state.userdata);
   const { currentTrackIndex, selectedPlaylist, tracks, isPlaying } = useSelector((state) => state.spotify);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const [playlists, setPlaylists] = useState([]);
   const [isFetchingPlaylists, setIsFetchingPlaylists] = useState(false);
@@ -34,7 +35,6 @@ export default function Music1() {
   const [volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
 
   // Fetch AllUsers if not already loaded
   useEffect(() => {
@@ -48,52 +48,24 @@ export default function Music1() {
     console.log('AllUsers:', AllUsers);
   }, [AllUsers]);
 
-
- const handleShareTrack = async () => {
-    if (!UserInfo?._id) {
-      toast.error('Please log in to share a track');
-      return;
-    }
-
-    if (currentTrackIndex < 0 || !tracks[currentTrackIndex]) {
-      toast.error('No track selected to share');
-      return;
-    }
-
-    const track = tracks[currentTrackIndex].track;
-    const postContent = `${UserInfo.name} is listening to ${track.name} by ${track.artists.map(artist => artist.name).join(', ')}`;
-    const mediaUrl = track.album.images?.[0]?.url || '';
-
-    try {
-      const response = await axios.post(
-        '/api/addpost',
-        {
-          content: postContent,
-          userID: UserInfo._id,
-          media: [mediaUrl],
-        },
-        { withCredentials: true }
-      );
-      toast.success('Track shared successfully!');
-      console.log('Post created:', response.data);
-    } catch (error) {
-      console.error('Error sharing track:', error);
-      toast.error('Failed to share track');
-    }
-  };
-
-
-  // Filter users based on search query
-  const filteredUsers = Array.isArray(AllUsers)
-    ? AllUsers.filter((user) =>
-        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.username?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
-
-  // Fetch Spotify user data
+  // Validate session and fetch user data
   useEffect(() => {
-    getUserData();
+    const validateSession = async () => {
+      setIsAuthLoading(true);
+      const expires = new Date(localStorage.getItem('expires') || 0);
+      if (!localStorage.getItem('access_token')) {
+        console.log('No access token found.');
+        setUserData(null);
+        setIsAuthLoading(false);
+        return;
+      }
+      if (expires < Date.now() && localStorage.getItem('refresh_token')) {
+        await handleRefreshToken();
+      }
+      await getUserData();
+      setIsAuthLoading(false);
+    };
+    validateSession();
   }, []);
 
   // Handle Spotify user data and playlists
@@ -104,7 +76,7 @@ export default function Music1() {
     }
   }, [userData]);
 
-  // Player state change handler (unchanged)
+  // Player state change handler
   useEffect(() => {
     if (!player || !isPremium) return;
 
@@ -181,15 +153,6 @@ export default function Music1() {
     return () => player.removeListener('player_state_changed', handleStateChange);
   }, [player, isPremium, dispatch, setProgress, tracks, currentTrackIndex, deviceId, isReady]);
 
-  // Token refresh check (unchanged)
-  useEffect(() => {
-    const expires = new Date(localStorage.getItem('expires') || 0);
-    const timeUntilExpiry = expires - Date.now();
-    if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
-      handleRefreshToken();
-    }
-  }, []);
-
   const checkPremiumStatus = async () => {
     try {
       const response = await axios.get('https://api.spotify.com/v1/me', {
@@ -201,7 +164,7 @@ export default function Music1() {
         toast.error('Spotify Premium required');
       }
     } catch (error) {
-      console.error('Check premium status error:', error);
+      console.error('Check premium status error:', error.response?.data || error.message);
       setIsPremium(false);
       toast.error('Failed to verify premium status');
     }
@@ -215,7 +178,7 @@ export default function Music1() {
       localStorage.setItem('state', response.data.state);
       window.location.href = response.data.authUrl;
     } catch (error) {
-      console.error('Spotify auth error:', error);
+      console.error('Spotify auth error:', error.response?.data || error.message);
       toast.error('Failed to initiate Spotify login');
       setIsLoading(false);
     }
@@ -224,14 +187,21 @@ export default function Music1() {
   const getUserData = async (retryCount = 0) => {
     const maxRetries = 2;
     try {
-      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/me', { withCredentials: true });
+      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/me', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        withCredentials: true,
+      });
+      console.log('User data fetched:', response.data);
       setUserData(response.data);
     } catch (error) {
-      console.error('Get user data error:', error);
+      console.error('Get user data error:', error.response?.data || error.message);
       if (error.response?.status === 401 && localStorage.getItem('refresh_token') && retryCount < maxRetries) {
+        console.log('401 error, attempting to refresh token...');
         await handleRefreshToken();
         getUserData(retryCount + 1);
       } else {
+        console.error('Failed to fetch user data after retries or no refresh token.');
+        toast.error('Session expired. Please log in again.');
         setUserData(null);
       }
     }
@@ -240,12 +210,15 @@ export default function Music1() {
   const getPlaylists = async () => {
     setIsFetchingPlaylists(true);
     try {
-      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/playlists', { withCredentials: true });
+      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/playlists', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        withCredentials: true,
+      });
       setPlaylists(response.data.items || []);
     } catch (error) {
-      console.error('Get playlists error:', error);
+      console.error('Get playlists error:', error.response?.data || error.message);
       if (error.response?.status === 401) {
-        handleRefreshToken();
+        await handleRefreshToken();
       } else {
         toast.error('Failed to fetch playlists');
         setPlaylists([]);
@@ -258,19 +231,49 @@ export default function Music1() {
   const getPlaylistTracks = async (playlistId) => {
     setIsFetchingTracks(true);
     try {
-      const response = await axios.get(`https://mern-application-w42i.onrender.com/spotify/playlists/${playlistId}/tracks`, { withCredentials: true });
+      const response = await axios.get(`https://mern-application-w42i.onrender.com/spotify/playlists/${playlistId}/tracks`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        withCredentials: true,
+      });
       dispatch(setTracks(response.data.items || []));
       dispatch(setSelectedPlaylist(playlistId));
     } catch (error) {
-      console.error('Get playlist tracks error:', error);
+      console.error('Get playlist tracks error:', error.response?.data || error.message);
       if (error.response?.status === 401) {
-        handleRefreshToken();
+        await handleRefreshToken();
       } else {
         toast.error('Failed to fetch playlist tracks');
         dispatch(setTracks([]));
       }
     } finally {
       setIsFetchingTracks(false);
+    }
+  };
+
+  const handleRefreshToken = async () => {
+    try {
+      console.log('Refreshing token with refresh_token:', localStorage.getItem('refresh_token')?.slice(0, 10) + '...');
+      const response = await axios.post(
+        'https://mern-application-w42i.onrender.com/spotify/refresh',
+        { refresh_token: localStorage.getItem('refresh_token') },
+        { withCredentials: true }
+      );
+      const { expires_in, access_token, refresh_token } = response.data;
+      localStorage.setItem('expires_in', expires_in);
+      localStorage.setItem('expires', new Date(Date.now() + expires_in * 1000));
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token || localStorage.getItem('refresh_token'));
+      console.log('Token refreshed successfully:', { expires_in, access_token: access_token.slice(0, 10) + '...' });
+      toast.success('Token refreshed successfully');
+      await getUserData();
+      await getPlaylists();
+      if (selectedPlaylist) {
+        await getPlaylistTracks(selectedPlaylist);
+      }
+    } catch (error) {
+      console.error('Refresh token error:', error.response?.data || error.message);
+      toast.error('Failed to refresh session. Please log in again.');
+      await handleLogout();
     }
   };
 
@@ -294,28 +297,41 @@ export default function Music1() {
       toast.success('Logged out successfully');
       navigate('/home');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error.response?.data || error.message);
       toast.error('Failed to logout');
     }
   };
 
-  const handleRefreshToken = async () => {
+  const handleShareTrack = async () => {
+    if (!UserInfo?._id) {
+      toast.error('Please log in to share a track');
+      return;
+    }
+
+    if (currentTrackIndex < 0 || !tracks[currentTrackIndex]) {
+      toast.error('No track selected to share');
+      return;
+    }
+
+    const track = tracks[currentTrackIndex].track;
+    const postContent = `${UserInfo.name} is listening to ${track.name} by ${track.artists.map(artist => artist.name).join(', ')}`;
+    const mediaUrl = track.album.images?.[0]?.url || '';
+
     try {
-      const response = await axios.post('https://mern-application-w42i.onrender.com/spotify/refresh', {}, { withCredentials: true });
-      const { expires_in, access_token, refresh_token } = response.data;
-      localStorage.setItem('expires_in', expires_in);
-      localStorage.setItem('expires', new Date(Date.now() + expires_in * 1000));
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token || localStorage.getItem('refresh_token'));
-      toast.success('Token refreshed successfully');
-      getUserData();
-      getPlaylists();
-      if (selectedPlaylist) {
-        getPlaylistTracks(selectedPlaylist);
-      }
+      const response = await axios.post(
+        '/api/addpost',
+        {
+          content: postContent,
+          userID: UserInfo._id,
+          media: [mediaUrl],
+        },
+        { withCredentials: true }
+      );
+      toast.success('Track shared successfully!');
+      console.log('Post created:', response.data);
     } catch (error) {
-      console.error('Refresh token error:', error);
-      handleLogout();
+      console.error('Error sharing track:', error.response?.data || error.message);
+      toast.error('Failed to share track');
     }
   };
 
@@ -331,7 +347,7 @@ export default function Music1() {
     }
 
     const expiresDate = new Date(localStorage.getItem('expires') || 0);
-    if (expiresDate < new Date()) {
+    if (expiresDate < Date.now()) {
       await handleRefreshToken();
       return;
     }
@@ -358,10 +374,9 @@ export default function Music1() {
       if (error.response?.status === 404) {
         toast.error('No active device found. Refreshing token...');
         await handleRefreshToken();
-        return;
       } else if (error.response?.status === 401) {
         toast.error('Session expired. Refreshing token...');
-        handleRefreshToken();
+        await handleRefreshToken();
       } else if (error.response?.status === 403) {
         toast.error('Spotify Premium required or insufficient permissions');
         setIsPremium(false);
@@ -383,7 +398,7 @@ export default function Music1() {
     }
 
     const expiresDate = new Date(localStorage.getItem('expires') || 0);
-    if (expiresDate < new Date()) {
+    if (expiresDate < Date.now()) {
       await handleRefreshToken();
       return;
     }
@@ -406,10 +421,9 @@ export default function Music1() {
       if (error.response?.status === 404) {
         toast.error('No active device found. Refreshing token...');
         await handleRefreshToken();
-        return;
       } else if (error.response?.status === 401) {
         toast.error('Session expired. Refreshing token...');
-        handleRefreshToken();
+        await handleRefreshToken();
       } else if (error.response?.status === 403) {
         toast.error('Spotify Premium required or insufficient permissions');
         setIsPremium(false);
@@ -431,7 +445,7 @@ export default function Music1() {
     }
 
     const expiresDate = new Date(localStorage.getItem('expires') || 0);
-    if (expiresDate < new Date()) {
+    if (expiresDate < Date.now()) {
       await handleRefreshToken();
       return;
     }
@@ -445,7 +459,7 @@ export default function Music1() {
         dispatch(setIsPlaying(true));
       }
     } catch (error) {
-      console.error('Next track error:', error);
+      console.error('Next track error:', error.response?.data || error.message);
       toast.error('Failed to play next track');
     }
   };
@@ -466,7 +480,7 @@ export default function Music1() {
       dispatch(setCurrentTrackIndex(currentTrackIndex - 1));
       dispatch(setIsPlaying(true));
     } catch (error) {
-      console.error('Previous track error:', error);
+      console.error('Previous track error:', error.response?.data || error.message);
       toast.error('Failed to play previous track');
     }
   };
@@ -505,277 +519,292 @@ export default function Music1() {
 
   const handleUserClick = (userId) => {
     navigate(`/users/${userId}`);
-    setSearchQuery("");
+    setSearchQuery('');
   };
+
+  // Filter users based on search query
+  const filteredUsers = Array.isArray(AllUsers)
+    ? AllUsers.filter(
+        (user) =>
+          user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.username?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="h-full flex flex-col bg-white py-4 px-3">
-  
-
-      {/* Search Section */}
-      <div className="mb-4">
-        <div className="relative">
-          <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search users by name or username..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
+      {isAuthLoading ? (
+        <div className="w-full h-screen flex flex-col items-center justify-center text-center text-lg">
+          <p className="mb-4">Authenticating...</p>
+          <p className="text-sm text-gray-500">Please wait while we connect to Spotify.</p>
         </div>
-        {searchQuery && (
-          <div className="mt-2 max-h-[20vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-            {filteredUsers.length > 0 ? (
-              <ul className="space-y-2">
-                {filteredUsers.map((user) => (
-                  <li
-                    key={user._id}
-                    onClick={() => handleUserClick(user._id)}
-                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100"
-                  >
-                    <img
-                      src={user.profilepic}
-                      alt={user.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
-                      <p className="text-xs text-gray-600 truncate">@{user.username}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-600">No users found.</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Player Section */}
-      <div className="w-full bg-gradient-to-r from-blue-600 to-blue-900 text-white rounded-2xl p-3 shadow-lg mb-4">
-        {currentTrackIndex >= 0 && tracks[currentTrackIndex] ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              {tracks[currentTrackIndex]?.track.album.images?.[0] ? (
-                <img
-                  src={tracks[currentTrackIndex].track.album.images[0].url}
-                  alt={tracks[currentTrackIndex].track.name}
-                  className="w-10 h-10 rounded-md object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-md bg-gray-600 flex items-center justify-center">
-                  <span className="text-gray-400 text-xs">No Image</span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{tracks[currentTrackIndex]?.track.name}</p>
-                <p className="text-xs text-gray-300 truncate">
-                  {tracks[currentTrackIndex]?.track.artists.map((artist) => artist.name).join(', ')}
-                </p>
-              </div>
-               {/* Share Button */}
-              <button
-                onClick={handleShareTrack}
-                className="p-1 rounded-full hover:bg-gray-700 transition"
-                title="Share this track"
-              >
-                <ShareIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={playPreviousTrack}
-                disabled={currentTrackIndex <= 0}
-                className="p-1 rounded-full hover:bg-gray-700 transition disabled:opacity-50"
-              >
-                <BackwardIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={togglePlayPause}
-                disabled={!isPremium}
-                className="p-1 bg-gradient-to-r from-green-500 to-green-600 rounded-full hover:from-green-600 hover:to-green-700 transition disabled:opacity-50"
-              >
-                {isPlaying ? <PauseIcon className="w-6 h-6" /> : <PlayIcon className="w-6 h-6" />}
-              </button>
-              <button
-                onClick={playNextTrack}
-                className="p-1 rounded-full hover:bg-gray-700 transition"
-              >
-                <ForwardIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs">
-                {formatTime(progress * (tracks[currentTrackIndex]?.track.duration_ms / 1000))}
-              </span>
+      ) : (
+        <>
+          {/* Search Section */}
+          <div className="mb-4">
+            <div className="relative">
+              <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
-                type="range"
-                value={progress * 100}
-                onChange={handleSeek}
-                className="flex-1 h-1 bg-gray-500 rounded-full appearance-none cursor-pointer"
-                style={{ accentColor: '#1DB954' }}
-              />
-              <span className="text-xs">
-                -{formatTime((1 - progress) * (tracks[currentTrackIndex]?.track.duration_ms / 1000))}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleMute}
-                className="p-1 rounded-full hover:bg-gray-700 transition"
-              >
-                {isMuted ? <SpeakerXMarkIcon className="w-5 h-5" /> : <SpeakerWaveIcon className="w-5 h-5" />}
-              </button>
-              <input
-                type="range"
-                value={isMuted ? 0 : volume * 100}
-                onChange={handleVolumeChange}
-                className="w-16 h-1 bg-gray-500 rounded-full appearance-none cursor-pointer"
-                style={{ accentColor: '#1DB954' }}
+                type="text"
+                placeholder="Search users by name or username..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-          </div>
-        ) : (
-          <p className="text-center">No track selected</p>
-        )}
-      </div>
-
-      {/* Playlists and Other Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-        {!deviceId && userData && isPremium && (
-          <div className="text-center text-red-500 mb-4">
-            Player not ready. Please try refreshing or logging in again.
-            <button onClick={handleRefreshToken} className="ml-2 text-blue-500 underline">
-              Refresh Token
-            </button>
-          </div>
-        )}
-        {!userData ? (
-          <div className="text-center">
-            <button
-              onClick={handleSpotifyLogin}
-              disabled={isLoading}
-              className="w-full py-2 px-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition disabled:opacity-50"
-            >
-              <svg className="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10S2 17.514 2 12 6.486 2 12 2zm3.893 14.853c-.193.293-.586.406-.879.213-2.427-1.6-5.493-1.973-9.12-1.08-.34.08-.66-.12-.74-.46-.08-.34.12-.66.46-.74 3.986-.973 7.413-.533 10.186 1.28.293.193.406.586.213.879zm1.28-2.933c-.24.36-.733.493-1.093.253-2.773-1.84-7.013-2.373-10.266-1.28-.426.133-.866-.08-.999-.506-.133-.426.08-.866.506-.999 3.733-1.253 8.533-.667 11.693 1.413.36.24.493.733.253 1.093zm.12-3.013c-3.333-2.027-8.84-2.213-12.013-.613-.506.24-1.093.027-1.333-.48-.24-.506.027-1.093.48-1.333 3.667-1.867 9.733-1.627 13.613.773.426.266.586.853.32 1.28-.266.426-.853.586-1.28.32z" />
-              </svg>
-              {isLoading ? 'Connecting...' : 'Connect Spotify'}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-lg font-semibold text-gray-900">{userData.display_name}</p>
-              {userData.images?.[0] && (
-                <img
-                  src={userData.images[0].url}
-                  alt="Profile"
-                  className="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-green-500"
-                />
-              )}
-              <p className="text-sm text-gray-600 mt-1">{userData.email}</p>
-              <p className="text-sm text-gray-600">
-                Account: <span className={isPremium ? 'text-green-500' : 'text-yellow-500'}>{isPremium ? 'Premium' : 'Free'}</span>
-              </p>
-            </div>
-            <div>
-              <h3 className="text-md font-semibold text-gray-900">Playlists</h3>
-              {isFetchingPlaylists ? (
-                <p className="text-gray-600 text-sm">Loading playlists...</p>
-              ) : playlists.length > 0 ? (
-                <ul className="space-y-2 mt-2 max-h-[30vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                  {playlists.map((playlist) => (
-                    <li
-                      key={playlist.id}
-                      onClick={() => getPlaylistTracks(playlist.id)}
-                      className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
-                        selectedPlaylist === playlist.id ? 'bg-blue-100' : ''
-                      }`}
-                    >
-                      {playlist.images?.[0] ? (
-                        <img
-                          src={playlist.images[0].url}
-                          alt={playlist.name}
-                          className="w-10 h-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500 text-xs">No Image</span>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 truncate">{playlist.name}</p>
-                        <p className="text-xs text-gray-600">{playlist.tracks.total} tracks</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-600 text-sm">No playlists found.</p>
-              )}
-            </div>
-            {selectedPlaylist && (
-              <div>
-                <h3 className="text-md font-semibold text-gray-900">Tracks</h3>
-                {isFetchingTracks ? (
-                  <p className="text-gray-600 text-sm">Loading tracks...</p>
-                ) : tracks.length > 0 ? (
-                  <ul className="space-y-2 mt-2 max-h-[30vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                    {tracks.map((item, index) => (
+            {searchQuery && (
+              <div className="mt-2 max-h-[20vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                {filteredUsers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {filteredUsers.map((user) => (
                       <li
-                        key={item.track.id}
-                        onClick={() => playTrack(item.track, index)}
-                        className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
-                          currentTrackIndex === index ? 'bg-green-100' : ''
-                        }`}
+                        key={user._id}
+                        onClick={() => handleUserClick(user._id)}
+                        className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100"
                       >
-                        {item.track.album.images?.[0] ? (
-                          <img
-                            src={item.track.album.images[0].url}
-                            alt={item.track.name}
-                            className="w-10 h-10 rounded-md object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center">
-                            <span className="text-gray-500 text-xs">No Image</span>
-                          </div>
-                        )}
+                        <img
+                          src={user.profilepic}
+                          alt={user.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
                         <div>
-                          <p className="text-sm font-medium text-gray-900 truncate">{item.track.name}</p>
-                          <p className="text-xs text-gray-600 truncate">
-                            {item.track.artists.map((artist) => artist.name).join(', ')}
-                          </p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                          <p className="text-xs text-gray-600 truncate">@{user.username}</p>
                         </div>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-gray-600 text-sm">No tracks found.</p>
+                  <p className="text-sm text-gray-600">No users found.</p>
                 )}
               </div>
             )}
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleRefreshToken}
-                className="w-full py-2 px-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transition"
-              >
-                <ArrowPathIcon className="w-5 h-5 inline mr-2" />
-                Refresh Token
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full py-2 px-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition"
-              >
-                <ArrowRightOnRectangleIcon className="w-5 h-5 inline mr-2" />
-                Logout
-              </button>
-            </div>
           </div>
-        )}
-      </div>
+
+          {/* Player Section */}
+          <div className="w-full bg-gradient-to-r from-blue-600 to-blue-900 text-white rounded-2xl p-3 shadow-lg mb-4">
+            {currentTrackIndex >= 0 && tracks[currentTrackIndex] ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  {tracks[currentTrackIndex]?.track.album.images?.[0] ? (
+                    <img
+                      src={tracks[currentTrackIndex].track.album.images[0].url}
+                      alt={tracks[currentTrackIndex].track.name}
+                      className="w-10 h-10 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-md bg-gray-600 flex items-center justify-center">
+                      <span className="text-gray-400 text-xs">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{tracks[currentTrackIndex]?.track.name}</p>
+                    <p className="text-xs text-gray-300 truncate">
+                      {tracks[currentTrackIndex]?.track.artists.map((artist) => artist.name).join(', ')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleShareTrack}
+                    className="p-1 rounded-full hover:bg-gray-700 transition"
+                    title="Share this track"
+                  >
+                    <ShareIcon className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={playPreviousTrack}
+                    disabled={currentTrackIndex <= 0}
+                    className="p-1 rounded-full hover:bg-gray-700 transition disabled:opacity-50"
+                  >
+                    <BackwardIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={togglePlayPause}
+                    disabled={!isPremium}
+                    className="p-1 bg-gradient-to-r from-green-500 to-green-600 rounded-full hover:from-green-600 hover:to-green-700 transition disabled:opacity-50"
+                  >
+                    {isPlaying ? <PauseIcon className="w-6 h-6" /> : <PlayIcon className="w-6 h-6" />}
+                  </button>
+                  <button
+                    onClick={playNextTrack}
+                    className="p-1 rounded-full hover:bg-gray-700 transition"
+                  >
+                    <ForwardIcon className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">
+                    {formatTime(progress * (tracks[currentTrackIndex]?.track.duration_ms / 1000))}
+                  </span>
+                  <input
+                    type="range"
+                    value={progress * 100}
+                    onChange={handleSeek}
+                    className="flex-1 h-1 bg-gray-500 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: '#1DB954' }}
+                  />
+                  <span className="text-xs">
+                    -{formatTime((1 - progress) * (tracks[currentTrackIndex]?.track.duration_ms / 1000))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className="p-1 rounded-full hover:bg-gray-700 transition"
+                  >
+                    {isMuted ? <SpeakerXMarkIcon className="w-5 h-5" /> : <SpeakerWaveIcon className="w-5 h-5" />}
+                  </button>
+                  <input
+                    type="range"
+                    value={isMuted ? 0 : volume * 100}
+                    onChange={handleVolumeChange}
+                    className="w-16 h-1 bg-gray-500 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: '#1DB954' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-center">No track selected</p>
+            )}
+          </div>
+
+          {/* Playlists and Other Content */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+            {!deviceId && userData && isPremium && (
+              <div className="text-center text-red-500 mb-4">
+                Player not ready. Please try refreshing or logging in again.
+                <button onClick={handleRefreshToken} className="ml-2 text-blue-500 underline">
+                  Refresh Token
+                </button>
+              </div>
+            )}
+            {!userData ? (
+              <div className="text-center">
+                <button
+                  onClick={handleSpotifyLogin}
+                  disabled={isLoading}
+                  className="w-full py-2 px-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10S2 17.514 2 12 6.486 2 12 2zm3.893 14.853c-.193.293-.586.406-.879.213-2.427-1.6-5.493-1.973-9.12-1.08-.34.08-.66-.12-.74-.46-.08-.34.12-.66.46-.74 3.986-.973 7.413-.533 10.186 1.28.293.193.406.586.213.879zm1.28-2.933c-.24.36-.733.493-1.093.253-2.773-1.84-7.013-2.373-10.266-1.28-.426.133-.866-.08-.999-.506-.133-.426.08-.866.506-.999 3.733-1.253 8.533-.667 11.693 1.413.36.24.493.733.253 1.093zm.12-3.013c-3.333-2.027-8.84-2.213-12.013-.613-.506.24-1.093.027-1.333-.48-.24-.506.027-1.093.48-1.333 3.667-1.867 9.733-1.627 13.613.773.426.266.586.853.32 1.28-.266.426-.853.586-1.28.32z" />
+                  </svg>
+                  {isLoading ? 'Connecting...' : 'Connect Spotify'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-900">{userData.display_name}</p>
+                  {userData.images?.[0] && (
+                    <img
+                      src={userData.images[0].url}
+                      alt="Profile"
+                      className="w-12 h-12 rounded-full mx-auto mt-2 border-2 border-green-500"
+                    />
+                  )}
+                  <p className="text-sm text-gray-600 mt-1">{userData.email}</p>
+                  <p className="text-sm text-gray-600">
+                    Account: <span className={isPremium ? 'text-green-500' : 'text-yellow-500'}>{isPremium ? 'Premium' : 'Free'}</span>
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-md font-semibold text-gray-900">Playlists</h3>
+                  {isFetchingPlaylists ? (
+                    <p className="text-gray-600 text-sm">Loading playlists...</p>
+                  ) : playlists.length > 0 ? (
+                    <ul className="space-y-2 mt-2 max-h-[30vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                      {playlists.map((playlist) => (
+                        <li
+                          key={playlist.id}
+                          onClick={() => getPlaylistTracks(playlist.id)}
+                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
+                            selectedPlaylist === playlist.id ? 'bg-blue-100' : ''
+                          }`}
+                        >
+                          {playlist.images?.[0] ? (
+                            <img
+                              src={playlist.images[0].url}
+                              alt={playlist.name}
+                              className="w-10 h-10 rounded-md object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center">
+                              <span className="text-gray-500 text-xs">No Image</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 truncate">{playlist.name}</p>
+                            <p className="text-xs text-gray-600">{playlist.tracks.total} tracks</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-600 text-sm">No playlists found.</p>
+                  )}
+                </div>
+                {selectedPlaylist && (
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900">Tracks</h3>
+                    {isFetchingTracks ? (
+                      <p className="text-gray-600 text-sm">Loading tracks...</p>
+                    ) : tracks.length > 0 ? (
+                      <ul className="space-y-2 mt-2 max-h-[30vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                        {tracks.map((item, index) => (
+                          <li
+                            key={item.track.id}
+                            onClick={() => playTrack(item.track, index)}
+                            className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
+                              currentTrackIndex === index ? 'bg-green-100' : ''
+                            }`}
+                          >
+                            {item.track.album.images?.[0] ? (
+                              <img
+                                src={item.track.album.images[0].url}
+                                alt={item.track.name}
+                                className="w-10 h-10 rounded-md object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-md bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 truncate">{item.track.name}</p>
+                              <p className="text-xs text-gray-600 truncate">
+                                {item.track.artists.map((artist) => artist.name).join(', ')}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-600 text-sm">No tracks found.</p>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleRefreshToken}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transition"
+                  >
+                    <ArrowPathIcon className="w-5 h-5 inline mr-2" />
+                    Refresh Token
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5 inline mr-2" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
