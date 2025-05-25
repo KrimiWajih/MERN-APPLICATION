@@ -28,7 +28,7 @@ const usernameref = useRef()
     console.log(newUser)
     try {
       const response = await axios.post(
-        `api/signup`,
+        `https://mern-application-w42i.onrender.com/signup`,
         newUser,
         {
           withCredentials: true,
