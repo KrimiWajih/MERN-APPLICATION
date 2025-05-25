@@ -20,9 +20,9 @@ const initialState = {
 
 export const getCurrent = createAsyncThunk("Users/getUser", async () => {
   const response = await axios.get(`https://mern-application-w42i.onrender.com/getcurrent`, {
-    headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
+  console.log('getCurrent response:', response.data);
   return response.data.User;
 });
 
