@@ -105,10 +105,12 @@ exports.signin = async (req, res) => {
             expiresIn: "7d",
           }
         );
-        res.cookie("token", token, {
-          httpOnly: true,
-          maxAge: 60 * 60 * 24 * 7 * 1000,
-        });
+      res.cookie('token', token, {
+  httpOnly: true,
+  maxAge: 60 * 60 * 24 * 7 * 1000,
+  secure: process.env.NODE_ENV === 'production', // Set to true in production (HTTPS)
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // Allow cross-origin in production
+});
         res
           .status(200)
           .send({ Msg: "Login Successful", User: UserFound, token });
