@@ -58,7 +58,7 @@ const PostModal = ({ isOpen, onClose }) => {
         media: imageLinks,
       };
 
-      const response = await axios.post("/api/addpost", postData, {
+      const response = await axios.post("https://mern-application-w42i.onrender.com/addpost", postData, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
