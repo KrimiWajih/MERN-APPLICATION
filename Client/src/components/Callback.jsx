@@ -35,7 +35,7 @@ export default function Callback() {
 
       axios
         .post(
-          '/api/spotify/login',
+          'https://mern-application-w42i.onrender.com/spotify/login',
           {
             code,
             code_verifier,
