@@ -27,6 +27,8 @@ app.use(
       'https://mern-application-1-fozj.onrender.com'
     ],
     credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(cookieParser());
