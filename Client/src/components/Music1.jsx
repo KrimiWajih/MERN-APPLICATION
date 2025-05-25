@@ -210,7 +210,7 @@ export default function Music1() {
   const handleSpotifyLogin = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('/api/spotify/auth', { withCredentials: true });
+      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/auth', { withCredentials: true });
       localStorage.setItem('code_verifier', response.data.code_verifier);
       localStorage.setItem('state', response.data.state);
       window.location.href = response.data.authUrl;
@@ -224,7 +224,7 @@ export default function Music1() {
   const getUserData = async (retryCount = 0) => {
     const maxRetries = 2;
     try {
-      const response = await axios.get('/api/spotify/me', { withCredentials: true });
+      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/me', { withCredentials: true });
       setUserData(response.data);
     } catch (error) {
       console.error('Get user data error:', error);
@@ -240,7 +240,7 @@ export default function Music1() {
   const getPlaylists = async () => {
     setIsFetchingPlaylists(true);
     try {
-      const response = await axios.get('/api/spotify/playlists', { withCredentials: true });
+      const response = await axios.get('https://mern-application-w42i.onrender.com/spotify/playlists', { withCredentials: true });
       setPlaylists(response.data.items || []);
     } catch (error) {
       console.error('Get playlists error:', error);
@@ -258,7 +258,7 @@ export default function Music1() {
   const getPlaylistTracks = async (playlistId) => {
     setIsFetchingTracks(true);
     try {
-      const response = await axios.get(`/api/spotify/playlists/${playlistId}/tracks`, { withCredentials: true });
+      const response = await axios.get(`https://mern-application-w42i.onrender.com/spotify/playlists/${playlistId}/tracks`, { withCredentials: true });
       dispatch(setTracks(response.data.items || []));
       dispatch(setSelectedPlaylist(playlistId));
     } catch (error) {
@@ -276,7 +276,7 @@ export default function Music1() {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/spotify/logout', {}, { withCredentials: true });
+      await axios.post('https://mern-application-w42i.onrender.com/spotify/logout', {}, { withCredentials: true });
       localStorage.removeItem('code_verifier');
       localStorage.removeItem('state');
       localStorage.removeItem('expires_in');
@@ -301,7 +301,7 @@ export default function Music1() {
 
   const handleRefreshToken = async () => {
     try {
-      const response = await axios.post('/api/spotify/refresh', {}, { withCredentials: true });
+      const response = await axios.post('https://mern-application-w42i.onrender.com/spotify/refresh', {}, { withCredentials: true });
       const { expires_in, access_token, refresh_token } = response.data;
       localStorage.setItem('expires_in', expires_in);
       localStorage.setItem('expires', new Date(Date.now() + expires_in * 1000));
