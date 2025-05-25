@@ -20,7 +20,7 @@ export default function Connect({ user }) {
   const handleFollow = async () => {
     try {
       const response = await axios.post(
-        `/api/follow`,
+        `https://mern-application-w42i.onrender.com/follow`,
         { followedID: user._id },
         { withCredentials: true }
       );
