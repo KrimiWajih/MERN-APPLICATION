@@ -117,6 +117,7 @@ const App = () => {
   return (
 
       <SpotifyPlayerProvider>
+        <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} />
         <RouterProvider router={router} />
       </SpotifyPlayerProvider>
 
