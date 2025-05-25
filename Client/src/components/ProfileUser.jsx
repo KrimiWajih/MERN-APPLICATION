@@ -28,8 +28,8 @@ const ProfileUser = () => {
     const fetchUserAndPosts = async () => {
       try {
         const [userRes, postsRes] = await Promise.all([
-          axios.get(`/api/users/${userID}`, { withCredentials: true }),
-          axios.get(`/api/userposts/${userID}`, { withCredentials: true }),
+          axios.get(`https://mern-application-w42i.onrender.com/users/${userID}`, { withCredentials: true }),
+          axios.get(`https://mern-application-w42i.onrender.com/userposts/${userID}`, { withCredentials: true }),
         ]);
 
         const profileUser = userRes.data.User;
@@ -62,7 +62,7 @@ const ProfileUser = () => {
   const handleFollow = async () => {
     try {
       const response = await axios.post(
-        `/api/follow`,
+        `https://mern-application-w42i.onrender.com/follow`,
         { followedID: userID },
         { withCredentials: true }
       );
@@ -81,14 +81,14 @@ const ProfileUser = () => {
     try {
       if (friendState === "not_friend") {
         await axios.post(
-          "/api/friendrequest",
+          "https://mern-application-w42i.onrender.com/friendrequest",
           { receiverId: userID },
           { withCredentials: true }
         );
         toast.success("Friend request sent");
       } else if (friendState === "unfriend") {
         await axios.post(
-          "/api/unfriend",
+          "https://mern-application-w42i.onrender.com/unfriend",
           { unfriendID: userID },
           { withCredentials: true }
         );
