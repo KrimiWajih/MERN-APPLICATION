@@ -75,7 +75,7 @@ export default function Messages() {
     try {
       console.log('Fetching messages for:', UserInfo._id, reciever);
       const response = await axios.get(
-        `${apiUrl}message/${UserInfo._id}/${reciever}`,
+        `https://mern-application-w42i.onrender.com/message/${UserInfo._id}/${reciever}`,
         { withCredentials: true }
       );
       console.log('Messages fetched:', response.data);
@@ -143,7 +143,7 @@ export default function Messages() {
       try {
         console.log('Sending message:', message);
         socket.emit('sendmessage', message);
-        const response = await axios.post(`${apiUrl}message/`, message, {
+        const response = await axios.post(`https://mern-application-w42i.onrender.com/message/`, message, {
           withCredentials: true,
         });
         console.log('Message saved:', response.data);
