@@ -124,10 +124,11 @@ export const UserSlice = createSlice({
         state.error = null;
         state.UserInfo = action.payload;
       })
-      .addCase(getCurrent.rejected, (state, action) => {
-        state.Loading = false;
-        state.error = action.error.message;
-      })
+     .addCase(getCurrent.rejected, (state, action) => {
+  state.Loading = false;
+  console.error('getCurrent error:', action.error, action);
+  state.error = action.error.message;
+})
       .addCase(getFriends.pending, (state, action) => {
         state.Loading = true;
         console.log(action);
