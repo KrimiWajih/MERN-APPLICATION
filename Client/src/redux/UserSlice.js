@@ -27,7 +27,7 @@ export const getCurrent = createAsyncThunk("Users/getUser", async () => {
 });
 
 export const getFriends = createAsyncThunk("Users/getFriends", async () => {
-  const response = await axios.get(`${apiUrl}listfriends`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/listfriends`, {
     
     withCredentials: true,
   });
@@ -36,7 +36,7 @@ export const getFriends = createAsyncThunk("Users/getFriends", async () => {
 });
 
 export const getConnect = createAsyncThunk("Users/getconnect", async () => {
-  const response = await axios.get(`${apiUrl}getusers`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getusers`, {
     withCredentials: true,
   });
   console.log(response.data);
@@ -44,7 +44,7 @@ export const getConnect = createAsyncThunk("Users/getconnect", async () => {
 });
 
 export const getFollow = createAsyncThunk("Users/getfollow", async () => {
-  const response = await axios.get(`${apiUrl}getusers`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getusers`, {
     withCredentials: true,
   });
   console.log(response.data);
@@ -53,7 +53,7 @@ export const getFollow = createAsyncThunk("Users/getfollow", async () => {
 
 
 export const getRequests = createAsyncThunk("Users/getreq", async () => {
-  const response = await axios.get(`${apiUrl}getrequests`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getrequests`, {
     withCredentials: true,
   });
   console.log(response.data);
@@ -72,7 +72,6 @@ export const getPosts = createAsyncThunk("Users/getposts", async () => {
 
 export const getFPosts = createAsyncThunk("Users/getfposts", async () => {
   const response = await axios.get(`https://mern-application-w42i.onrender.com/getfposts`, {
-    headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
   console.log(response.data);
@@ -82,8 +81,7 @@ export const getFPosts = createAsyncThunk("Users/getfposts", async () => {
 
 
 export const getFollowPosts = createAsyncThunk("Users/getfollowposts", async () => {
-  const response = await axios.get(`${apiUrl}getfollowposts`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getfollowposts`, {
     withCredentials: true,
   });
   console.log(response.data);
@@ -92,15 +90,15 @@ export const getFollowPosts = createAsyncThunk("Users/getfollowposts", async () 
 
 
 export const getComments = createAsyncThunk("user/getComments", async (userID) => {
-  const response = await axios.get(`${apiUrl}commentbyuser/${userID}`, {
-    headers: { Authorization: `Bearer ${token}` },withCredentials: true });
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/commentbyuser/${userID}`, {
+   withCredentials: true
+  });
   return response.data;
 });
 
 
 export const getAllUsers = createAsyncThunk("Users/getallusers", async () => {
-  const response = await axios.get(`${apiUrl}getallusers`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getallusers`, {
     withCredentials: true,
   });
   console.log(response.data.Users);
