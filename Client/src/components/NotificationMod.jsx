@@ -10,14 +10,14 @@ console.log(user)
   const dispatch = useDispatch();
 
   const handleAccept = async () => {
-   const response = await axios.post ("api/addfriend",{response :"accept" , friendreqID : user._id },{withCredentials : true})
+   const response = await axios.post ("https://mern-application-w42i.onrender.com/addfriend",{response :"accept" , friendreqID : user._id },{withCredentials : true})
     console.log("Accepted:", response);
     toast.info("Friend request accepted!");
     dispatch(getRequests());
   };
 
   const handleReject = async () => {
-    const response = await axios.post ("api/addfriend",{response :"reject" , friendreqID : user._id },{withCredentials : true})
+    const response = await axios.post ("https://mern-application-w42i.onrender.com/addfriend",{response :"reject" , friendreqID : user._id },{withCredentials : true})
      console.log("Rejected:", response);
      toast.info("Friend request rejected!");
     dispatch(getRequests());
