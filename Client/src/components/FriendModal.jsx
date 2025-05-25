@@ -20,7 +20,7 @@ export default function FriendModal({ user }) {
   const handleUnfriend = async () => {
     try {
       const response = await axios.post(
-        `api/unfriend`,
+        `https://mern-application-w42i.onrender.com/unfriend`,
         { unfriendID: user._id },
         { withCredentials: true }
       );
