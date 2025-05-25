@@ -7,7 +7,7 @@ import { getFriends } from '../redux/UserSlice';
 import './Messages.css';
 
 const apiUrl = 'https://mern-application-w42i.onrender.com'; // Use Vite proxy
-const socket = io({
+const socket = io('https://mern-application-w42i.onrender.com', {
   withCredentials: true,
   transports: ['websocket', 'polling'],
   reconnection: true,
