@@ -275,42 +275,29 @@ export default function Music1() {
   };
 
   const handleLogout = async () => {
-  try {
-    // Disconnect Spotify player
-    if (player) {
-      await player.disconnect();
-      console.log('Spotify player disconnected');
+    try {
+      await axios.post('https://mern-application-w42i.onrender.com/spotify/logout', {}, { withCredentials: true });
+      localStorage.removeItem('code_verifier');
+      localStorage.removeItem('state');
+      localStorage.removeItem('expires_in');
+      localStorage.removeItem('expires');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setUserData(null);
+      setPlaylists([]);
+      dispatch(setTracks([]));
+      dispatch(setSelectedPlaylist(null));
+      dispatch(setCurrentTrackIndex(-1));
+      setIsPremium(false);
+      setProgress(0);
+      dispatch(setIsPlaying(false));
+      toast.success('Logged out successfully');
+      navigate('/home');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to logout');
     }
-
-    // Call backend logout endpoint
-    await axios.post('https://mern-application-w42i.onrender.com/spotify/logout', {}, { withCredentials: true });
-
-    // Clear localStorage
-    localStorage.removeItem('code_verifier');
-    localStorage.removeItem('state');
-    localStorage.removeItem('expires_in');
-    localStorage.removeItem('expires');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-
-    // Reset state
-    setUserData(null);
-    setPlaylists([]);
-    dispatch(setTracks([]));
-    dispatch(setSelectedPlaylist(null));
-    dispatch(setCurrentTrackIndex(-1));
-    setIsPremium(false);
-    setProgress(0);
-    dispatch(setIsPlaying(false));
-
-    // Show success message and navigate
-    toast.success('Logged out successfully');
-    navigate('/home', { replace: true }); // Use replace to prevent back navigation
-  } catch (error) {
-    console.error('Logout error:', error);
-    toast.error('Failed to logout');
-  }
-};
+  };
 
   const handleRefreshToken = async () => {
     try {
