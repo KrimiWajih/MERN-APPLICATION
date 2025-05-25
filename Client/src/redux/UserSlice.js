@@ -71,7 +71,8 @@ export const getPosts = createAsyncThunk("Users/getposts", async () => {
 
 
 export const getFPosts = createAsyncThunk("Users/getfposts", async () => {
-  const response = await axios.get(`${apiUrl}getfposts`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getfposts`, {
+    headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
   console.log(response.data);
