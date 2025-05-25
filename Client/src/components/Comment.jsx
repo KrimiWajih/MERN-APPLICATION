@@ -39,7 +39,7 @@ const Comment = ({ comment, postId, onAddComment, onCommentClick, onDeleteCommen
     setIsLoading(true);
     try {
       await axios.post(
-        "/api/likeComment",
+        "https://mern-application-w42i.onrender.com/likeComment",
         { commentID: comment._id },
         { withCredentials: true }
       );
@@ -71,7 +71,7 @@ const Comment = ({ comment, postId, onAddComment, onCommentClick, onDeleteCommen
     setIsReplyLoading(true);
     try {
       const response = await axios.post(
-        "/api/addcomment",
+        "https://mern-application-w42i.onrender.com/addcomment",
         {
           content: replyText,
           userID: UserInfo._id,
@@ -104,7 +104,7 @@ const Comment = ({ comment, postId, onAddComment, onCommentClick, onDeleteCommen
 
     setIsDeleteLoading(true);
     try {
-      const response = await axios.delete("/api/deletecomment", {
+      const response = await axios.delete("https://mern-application-w42i.onrender.com/deletecomment", {
         data: { commentID: comment._id },
         withCredentials: true,
       });
