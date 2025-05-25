@@ -1,31 +1,30 @@
 import axios from "axios";
 import React, { useRef } from "react";
-import { Link,  useRevalidator } from "react-router-dom";
+import { Link, useNavigate, useRevalidator } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function Signup() {
-
   const { revalidate } = useRevalidator();
-
+  const navigate = useNavigate(); // Add useNavigate for redirection
 
   const emailref = useRef();
   const passref = useRef();
-const nameref = useRef();
-const usernameref = useRef()
+  const nameref = useRef();
+  const usernameref = useRef();
 
   const handlesignup = async (event) => {
     event.preventDefault();
-    if (!emailref.current.value || !passref.current.value) {
-      toast.error("Please fill the form");
+    if (!emailref.current.value || !passref.current.value || !nameref.current.value || !usernameref.current.value) {
+      toast.error("Please fill all fields");
       return;
     }
     const newUser = {
       username: usernameref.current.value,
-      name:nameref.current.value,
+      name: nameref.current.value,
       email: emailref.current.value,
       password: passref.current.value,
     };
-    console.log(newUser)
+    console.log("New user:", newUser);
     try {
       const response = await axios.post(
         `https://mern-application-w42i.onrender.com/signup`,
@@ -34,25 +33,26 @@ const usernameref = useRef()
           withCredentials: true,
         }
       );
-
-      console.log("Login response:", response);
-      toast.success("Signup successful! Please check your email to verify your account.");
+      console.log("Signup response:", response);
+      toast.success("Verify your email"); // Updated toast message
       revalidate();
+      navigate("/"); // Redirect to root route
     } catch (error) {
+      console.error("Signup error:", error);
       if (error.response) {
-        console.log(error);
         if (error.response.status === 400) {
-          toast.error("User not found");
+          toast.error(error.response.data.Msg || "Invalid input or user already exists");
         } else if (error.response.status === 500) {
-          toast.error(error.response.data.Msg || "Wrong Password");
+          toast.error(error.response.data.Msg || "Server error");
         } else {
-          toast.error("Failed to login");
+          toast.error("Failed to sign up");
         }
       } else {
         toast.error("Server not reachable");
       }
     }
   };
+
   return (
     <div className="w-full h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="flex w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-lg dark:bg-gray-800 lg:max-w-4xl">
@@ -68,8 +68,8 @@ const usernameref = useRef()
         {/* Right Side Form */}
         <div className="w-full px-6 py-8 md:px-8 lg:w-1/2">
           <div className="flex justify-center mx-auto mb-4">
-          <img
-              className="w-auto h-16 sm:h-32 "
+            <img
+              className="w-auto h-16 sm:h-32"
               src="/images/Chibi1.png"
               alt="Logo"
             />
@@ -79,7 +79,7 @@ const usernameref = useRef()
             Create an account
           </p>
 
-          <form className="mt-6" onSubmit={(e)=>handlesignup(e)}>
+          <form className="mt-6" onSubmit={handlesignup}>
             {/* Name */}
             <div className="mt-4">
               <label className="block text-sm text-gray-700 dark:text-gray-200">
@@ -140,7 +140,6 @@ const usernameref = useRef()
             <div className="mt-6">
               <button
                 type="submit"
-                
                 className="w-full px-6 py-3 text-sm font-medium tracking-wide text-white transition bg-indigo-600 rounded-lg hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300"
               >
                 Sign Up
