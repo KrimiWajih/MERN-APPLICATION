@@ -13,7 +13,7 @@ export default function SinglePost() {
     
     const fetchPost = async () => {
       try {
-        const response = await axios.get(`/api/posts/${postID}`, {
+        const response = await axios.get(`https://mern-application-w42i.onrender.com/posts/${postID}`, {
           withCredentials: true,
         });
         console.log(response.data)
