@@ -24,7 +24,7 @@ const PostUser1 = ({ post, onDelete }) => {
     const fetchComments = async () => {
       setIsCommentsFetching(true);
       try {
-        const response = await axios.get(`/api/comments/${post._id}`, {
+        const response = await axios.get(`https://mern-application-w42i.onrender.com/comments/${post._id}`, {
           withCredentials: true,
         });
         console.log("Fetched comments:", response.data.comments);
@@ -50,7 +50,7 @@ const PostUser1 = ({ post, onDelete }) => {
 
     setIsLoading(true);
     try {
-      await axios.post(`/api/like`, { postId: post._id }, { withCredentials: true });
+      await axios.post(`https://mern-application-w42i.onrender.com/like`, { postId: post._id }, { withCredentials: true });
       setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
       setIsLiked((prev) => !prev);
     } catch (error) {
@@ -79,7 +79,7 @@ const PostUser1 = ({ post, onDelete }) => {
     setIsCommentLoading(true);
     try {
       const response = await axios.post(
-        `/api/addcomment`,
+        `https://mern-application-w42i.onrender.com/addcomment`,
         {
           content: commentText,
           userID: UserInfo._id,
@@ -135,7 +135,7 @@ const PostUser1 = ({ post, onDelete }) => {
     toast.success("Comment deleted!"); // Show success immediately
 
     try {
-      const response = await axios.delete(`/api/deletecomment/${deletedCommentId}`, {
+      const response = await axios.delete(`https://mern-application-w42i.onrender.com/deletecomment/${deletedCommentId}`, {
         withCredentials: true,
       });
       console.log("Delete comment response:", response.data);
@@ -155,7 +155,7 @@ const PostUser1 = ({ post, onDelete }) => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/posts/${post._id}`, {
+      await axios.delete(`https://mern-application-w42i.onrender.com/posts/${post._id}`, {
         withCredentials: true,
       });
       toast.success("Post deleted!");
