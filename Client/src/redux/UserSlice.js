@@ -20,7 +20,6 @@ const initialState = {
 
 export const getCurrent = createAsyncThunk("Users/getUser", async () => {
   const response = await axios.get(`https://mern-application-w42i.onrender.com/getcurrent`, {
-     headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
   return response.data.User;
@@ -28,6 +27,7 @@ export const getCurrent = createAsyncThunk("Users/getUser", async () => {
 
 export const getFriends = createAsyncThunk("Users/getFriends", async () => {
   const response = await axios.get(`${apiUrl}listfriends`, {
+    
     withCredentials: true,
   });
   console.log(response.data);
@@ -44,7 +44,6 @@ export const getConnect = createAsyncThunk("Users/getconnect", async () => {
 
 export const getFollow = createAsyncThunk("Users/getfollow", async () => {
   const response = await axios.get(`${apiUrl}getusers`, {
-    headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
   console.log(response.data);
