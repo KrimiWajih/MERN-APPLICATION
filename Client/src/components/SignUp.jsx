@@ -5,8 +5,7 @@ import { toast } from "react-toastify";
 
 export default function Signup() {
   const { revalidate } = useRevalidator();
-  const navigate = useNavigate(); // Add useNavigate for redirection
-
+  const navigate = useNavigate();
   const emailref = useRef();
   const passref = useRef();
   const nameref = useRef();
@@ -33,13 +32,19 @@ export default function Signup() {
           withCredentials: true,
         }
       );
-       toast.success("Verify your email");
-      console.log("Signup response:", response);
-
+      console.log("Signup response:", response.data);
+      toast.success("Verify your email", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+      });
       revalidate();
-      navigate("/"); // Redirect to root route
+      // Delay redirect to ensure toast is visible
+      setTimeout(() => {
+        navigate("/");
+      }, 3500); // Wait 3.5 seconds to match toast duration
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Signup error:", error.response?.data || error.message);
       if (error.response) {
         if (error.response.status === 400) {
           toast.error(error.response.data.Msg || "Invalid input or user already exists");
