@@ -11,7 +11,7 @@ function VerifyAccount() {
   useEffect(() => {
     const verify = async () => {
       try {
-        const res = await axios.get(`api/verifyaccount/${token}`);
+        const res = await axios.get(`https://mern-application-w42i.onrender.com/verifyaccount/${token}`);
         toast.success("Successfully Verified!");
         setMessage("Successfully Verified.");
         setTimeout(() => navigate("/"), 2000);
