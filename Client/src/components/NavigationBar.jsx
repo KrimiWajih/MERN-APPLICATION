@@ -39,7 +39,7 @@ export default function NavigationBar() {
   const logout = async () => {
     try {
       const response = await axios.post(
-        "api/logout",
+        "https://mern-application-w42i.onrender.com/logout",
         {},
         { withCredentials: true }
       );
