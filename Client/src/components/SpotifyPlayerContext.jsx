@@ -22,7 +22,7 @@ export const SpotifyPlayerProvider = ({ children }) => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       console.error('No access token found');
-      toast.error('Please log in to Spotify');
+    //  toast.error('Please log in to Spotify');
       return;
     }
 
