@@ -92,7 +92,7 @@ const Profile = () => {
 
       // Send to backend
       const response = await axios.post(
-        "/api/editprofile",
+        "https://mern-application-w42i.onrender.com/editprofile",
         payload,
         { withCredentials: true, headers: { "Content-Type": "application/json" } }
       );
@@ -116,7 +116,7 @@ const Profile = () => {
   // Handle post deletion
   const handleDeletePost = async (postID) => {
     try {
-      await axios.delete(`/api/deletepost/${postID}`, {
+      await axios.delete(`https://mern-application-w42i.onrender.com/deletepost/${postID}`, {
         withCredentials: true,
       });
       dispatch(getPosts());
