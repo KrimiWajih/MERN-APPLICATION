@@ -61,7 +61,7 @@ const Home = () => {
       };
       console.log("postData before sending:", JSON.stringify(postData, null, 2));
 
-      const response = await axios.post("/api/addpost", postData, {
+      const response = await axios.post("https://mern-application-w42i.onrender.com/addpost", postData, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
