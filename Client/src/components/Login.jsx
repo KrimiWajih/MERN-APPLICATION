@@ -22,7 +22,7 @@ export default function Login() {
     console.log(newUser);
     try {
       const response = await axios.post(
-        '/api/signin', // Use proxied endpoint
+        'https://mern-application-w42i.onrender.com/signin', // Use proxied endpoint
         newUser,
         {
           withCredentials: true,
