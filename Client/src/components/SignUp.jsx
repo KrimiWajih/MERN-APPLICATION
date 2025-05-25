@@ -33,7 +33,7 @@ export default function Signup() {
         }
       );
       console.log("Signup response:", response.data);
-      toast.success("Verify your email", {
+      toast.success("User registered successfully. Please check your email for verification", {
         position: "top-center",
         autoClose: 3000,
         hideProgressBar: false,
