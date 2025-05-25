@@ -259,13 +259,15 @@ app.get('/spotify/me', async (req, res) => {
 app.post('/spotify/logout', (req, res) => {
   res.clearCookie('access_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: true, // Always true for Render (HTTPS)
+    sameSite: 'None', // Match /spotify/login and /spotify/refresh
+    path: '/', // Ensure the cookie is cleared for all paths
   });
   res.clearCookie('refresh_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: true,
+    sameSite: 'None',
+    path: '/',
   });
   res.json({ message: 'Logged out successfully' });
 });
