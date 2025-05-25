@@ -24,11 +24,12 @@ app.use(
     origin: [
       'http://localhost:5173',
       'https://localhost:5173',
-      'https://mern-application-1-fozj.onrender.com'
+      'https://mern-application-1-fozj.onrender.com',
+      'https://mern-application-w42i.onrender.com',
     ],
     credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
@@ -36,53 +37,6 @@ const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const scope =
   'user-read-private user-read-email streaming user-read-playback-state playlist-read-private playlist-read-collaborative user-modify-playback-state';
-
-// Spotify routes (unchanged)
-app.get('/spotify/playlists', async (req, res) => {
-  const access_token = req.cookies.access_token;
-  if (!access_token) {
-    return res.status(401).json({ error: 'No access token' });
-  }
-  try {
-    const response = await fetch('https://api.spotify.com/v1/me/playlists?limit=20', {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-    const data = await response.json();
-    if (data.error) {
-      console.error('Spotify playlists error:', data);
-      return res.status(data.error.status || 400).json(data);
-    }
-    res.json(data);
-  } catch (err) {
-    console.error('Spotify playlists error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch playlists' });
-  }
-});
-
-app.get('/spotify/playlists/:id/tracks', async (req, res) => {
-  const access_token = req.cookies.access_token;
-  const playlistId = req.params.id;
-  if (!access_token) {
-    return res.status(401).json({ error: 'No access token' });
-  }
-  try {
-    const response = await fetch(
-      `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
-      {
-        headers: { Authorization: `Bearer ${access_token}` },
-      }
-    );
-    const data = await response.json();
-    if (data.error) {
-      console.error('Spotify playlist tracks error:', data);
-      return res.status(data.error.status || 400).json(data);
-    }
-    res.json(data);
-  } catch (err) {
-    console.error('Spotify playlist tracks error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch playlist tracks' });
-  }
-});
 
 app.get('/spotify/auth', (req, res) => {
   const generateRandomString = (length) => {
@@ -124,6 +78,39 @@ app.get('/spotify/auth', (req, res) => {
   authUrl.search = new URLSearchParams(params).toString();
   console.log('Generated auth URL:', authUrl.toString());
   res.json({ authUrl: authUrl.toString(), code_verifier, state });
+});
+
+app.get('/spotify/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) {
+    console.error('Spotify callback error:', error);
+    return res.redirect('https://mern-application-w42i.onrender.com/music1?error=auth_failed');
+  }
+  if (!code || !state) {
+    console.error('Missing code or state:', { code, state });
+    return res.redirect('https://mern-application-w42i.onrender.com/music1?error=invalid_request');
+  }
+  try {
+    const response = await fetch('https://mern-application-w42i.onrender.com/spotify/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        state,
+        code_verifier: authSessions.get(state)?.code_verifier,
+        redirect_uri: process.env.REDIRECT_URI,
+      }),
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('Spotify login error:', data);
+      return res.redirect('https://mern-application-w42i.onrender.com/music1?error=login_failed');
+    }
+    res.redirect('https://mern-application-w42i.onrender.com/music1');
+  } catch (err) {
+    console.error('Callback error:', err.message);
+    res.redirect('https://mern-application-w42i.onrender.com/music1?error=server_error');
+  }
 });
 
 app.post('/spotify/login', async (req, res) => {
@@ -168,14 +155,14 @@ app.post('/spotify/login', async (req, res) => {
     }
     res.cookie('access_token', data.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      secure: true,
+      sameSite: 'None',
       maxAge: data.expires_in * 1000,
     });
     res.cookie('refresh_token', data.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      secure: true,
+      sameSite: 'None',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.json({
@@ -212,15 +199,15 @@ app.post('/spotify/refresh', async (req, res) => {
     }
     res.cookie('access_token', data.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      secure: true,
+      sameSite: 'None',
       maxAge: data.expires_in * 1000,
     });
     if (data.refresh_token) {
       res.cookie('refresh_token', data.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: true,
+        sameSite: 'None',
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
     }
@@ -259,13 +246,13 @@ app.get('/spotify/me', async (req, res) => {
 app.post('/spotify/logout', (req, res) => {
   res.clearCookie('access_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: true,
+    sameSite: 'None',
   });
   res.clearCookie('refresh_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: true,
+    sameSite: 'None',
   });
   res.json({ message: 'Logged out successfully' });
 });
@@ -274,7 +261,6 @@ app.use('/', URouter);
 const server = http.createServer(app);
 initialization(server);
 
-// Use server.listen instead of app.listen
 server.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
 });
