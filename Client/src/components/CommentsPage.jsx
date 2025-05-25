@@ -15,7 +15,7 @@ const CommentsPage = () => {
   const [error, setError] = useState(null);
 
   // Use "/api" for proxy, or "http://localhost:5000/api" if no proxy
-  const API_BASE_URL = "/api";
+  const API_BASE_URL = "https://mern-application-w42i.onrender.com";
 
   // Log params for debugging
   useEffect(() => {
