@@ -129,10 +129,13 @@ exports.logout = (req, res) => {
 exports.getCurrent = async (req, res) => {
   try {
     const user = req.user;
+    console.log('User in getCurrent:', user);
     if (!user) {
       return res.status(401).send({ Msg: 'No user found in request' });
     }
-    res.status(200).send({ Msg: 'Connecting User', User: user });
+    const response = { Msg: 'Connecting User', User: user };
+    console.log('getCurrent response:', response);
+    res.status(200).send(response);
   } catch (error) {
     console.error('Error in getCurrent:', error);
     res.status(500).send({ Msg: 'Internal server error', error: error.message });
