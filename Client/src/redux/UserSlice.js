@@ -60,7 +60,8 @@ export const getRequests = createAsyncThunk("Users/getreq", async () => {
 });
 
 export const getPosts = createAsyncThunk("Users/getposts", async () => {
-  const response = await axios.get(`${apiUrl}getposts`, {
+  const response = await axios.get(`https://mern-application-w42i.onrender.com/getposts`, {
+     headers: { Authorization: `Bearer ${token}` },
     withCredentials: true,
   });
   console.log(response.data.Post);
