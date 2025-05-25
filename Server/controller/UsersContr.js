@@ -123,10 +123,13 @@ exports.logout = (req, res) => {
 
 exports.getCurrent = async (req, res) => {
   try {
-    const user = req.user;
-    res.status(200).send({ Msg: "Connecting User", User: user });
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    res.status(200).json({ Msg: 'Connecting User', user: req.user });
   } catch (error) {
-    res.status(200).send({ Msg: "Connect" });
+    console.error('getCurrent error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
