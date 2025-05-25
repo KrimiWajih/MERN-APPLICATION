@@ -1,19 +1,23 @@
 const jwt = require("jsonwebtoken");
 const Users = require("../models/UsersSchema")
 const secretkey = process.env.SECRET_JWT;
-exports.isauth = async (req,res,next)=>{
-try {
-   const token = req.cookies.token
-    const verify = jwt.verify(token , secretkey);
-   const user= await Users.findById(verify.id) 
-    if(user){
-            req.user =user;
-            next();
-        }else{
-
-         res.status(400).send({ Msg: "Not authorized. Only admin can post a job" });
-        }  
-} catch (error) {
-    res.status(400).send({ Msg: "failed to verify " ,error });
-}
-}
+exports.isauth = async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+    console.log('Token received:', token);
+    if (!token) {
+      return res.status(401).send({ Msg: 'No token provided' });
+    }
+    const verify = jwt.verify(token, secretkey);
+    console.log('Verified token:', verify);
+    const user = await Users.findById(verify.id);
+    if (!user) {
+      return res.status(404).send({ Msg: 'User not found' });
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Error in isauth:', error.message);
+    res.status(401).send({ Msg: 'Failed to verify token', error: error.message });
+  }
+};
