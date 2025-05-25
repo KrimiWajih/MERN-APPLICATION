@@ -87,35 +87,32 @@ exports.signupuser = async (req, res) => {
 
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body);
+  console.log('Signin request:', req.body);
   try {
-    let UserFound = await Users.findOne({ email });
-    console.log(UserFound);
+    const UserFound = await Users.findOne({ email });
+    console.log('User found:', UserFound?._id);
     if (!UserFound) {
-      res.status(400).send({ Msg: "User not found" });
-    } else {
-      const match = bcrypt.compareSync(password, UserFound.password);
-      if (!match) {
-        res.status(500).send({ Msg: "Wrong Password" });
-      } else {
-        const token = jwt.sign(
-          { id: UserFound._id, name: UserFound.name },
-          secretkey,
-          {
-            expiresIn: "7d",
-          }
-        );
-        res.cookie("token", token, {
-          httpOnly: true,
-          maxAge: 60 * 60 * 24 * 7 * 1000,
-        });
-        res
-          .status(200)
-          .send({ Msg: "Login Successful", User: UserFound, token });
-      }
+      return res.status(401).json({ error: 'User not found' });
     }
+    const match = await bcrypt.compare(password, UserFound.password);
+    if (!match) {
+      return res.status(401).json({ error: 'Wrong password' });
+    }
+    const token = jwt.sign(
+      { id: user._id, name: UserFound.name },
+      process.env.SECRET_JWT,
+      { expiresIn: '7d' }
+    );
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // true in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // None for cross-origin
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    res.status(200).json({ Msg: 'Login Successful', user: UserFound });
   } catch (error) {
-    res.status(500).send({ Msg: "Failed to login" });
+    console.error('Signin error:', error);
+    res.status(500).json({ error: 'Failed to login' });
   }
 };
 
