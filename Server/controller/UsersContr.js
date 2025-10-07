@@ -36,7 +36,7 @@ exports.signupuser = async (req, res) => {
     service: "gmail",
     auth: {
       user: "wajihkurousagi@gmail.com",
-      pass: "vagm seay dcmo ltnz",
+      pass: "wnhm pomw mkpf vicf",
     },
   });
 
