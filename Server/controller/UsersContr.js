@@ -32,100 +32,58 @@ exports.verifyEmailU = async (req, res) => {
 
 exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
-
-  // Gmail SMTP transporter (kept exactly as you had it)
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // TLS
+    service: "gmail",
     auth: {
       user: "wajihkurousagi@gmail.com",
-      pass: "vagm seay dcmo ltnz" // "vagmseaydcmoltnz"
+      pass: "vagm seay dcmo ltnz",
     },
-    tls: { minVersion: "TLSv1.2" },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-    family: 4, // force IPv4
   });
 
   try {
-    // 1) prevent duplicate
     const testuser = await Users.findOne({ email });
     if (testuser) {
       return res.status(400).send({ Msg: "User already exists" });
-    }
-
-    // 2) hash & stage create
-    const hpassword = bcrypt.hashSync(password, salt);
-    const newuser = new Users({ name, email, password: hpassword, username });
-
-    // 3) token + verify link
-    const token = jwt.sign(
-      { id: newuser._id, email: newuser.email },
-      secretkey,
-      { expiresIn: "7d" }
-    );
-    const verifyUrl = `https://mern-application-1-fozj.onrender.com/verifyaccount/${token}`;
-
-    // 4) attempt to send email (fallback if network blocked)
-    const mailoptions = {
-      from: `"TuneSphere" <wajihkurousagi@gmail.com>`,
-      to: email,
-      subject: "Please Verify Your Account",
-      html: `
-        <h1>Welcome to our website</h1>
-        <p>Please verify your account by clicking the link below:</p>
-        <a href="${verifyUrl}">Verify Account</a>
-      `,
-      text: `Welcome! Verify your account: ${verifyUrl}`,
-    };
-
-    let emailSent = false;
-
-    try {
-      // verify() opens a connection; if it times out we still continue
-      await transporter.verify();
-      await transporter.sendMail(mailoptions);
-      emailSent = true;
-    } catch (mailErr) {
-      // Network or SMTP failure — continue with signup and return the link
-      console.warn("Email send failed; continuing with signup.", {
-        code: mailErr?.code,
-        responseCode: mailErr?.responseCode,
-        message: mailErr?.message,
-      });
-    }
-
-    // 5) persist user regardless of email outcome
-    await newuser.save();
-
-    // 6) respond
-    if (emailSent) {
-      return res.status(201).send({
-        Msg: "User registered successfully. Please check your email for verification.",
-      });
     } else {
-      return res.status(201).send({
-        Msg:
-          "User registered. Email could not be delivered from this environment.",
-        verifyUrl, // let the frontend open this directly
+      const hpassword = bcrypt.hashSync(password, salt);
+      const newuser = new Users({
+        name,
+        email,
+        password: hpassword,
+        username,
       });
+      const token = jwt.sign(
+        {
+          id: newuser._id,
+          email: newuser.email,
+        },
+        secretkey,
+        { expiresIn: "7d" }
+      );
+
+      const mailoptions = {
+        to: email,
+        subject: "Please Verify Your Account",
+        html: `
+            <h1>Welcome to our website</h1>
+            <p>Please verify your account by clicking the link below:</p>
+            <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
+          `,
+      };
+      try {
+        await transporter.sendMail(mailoptions);
+        await newuser.save();
+        res.status(201).send({
+          Msg: "User registered successfully. Please check your email for verification.",
+        });
+      } catch (error) {
+        return res
+          .status(500)
+          .send({ Msg: "Failed to send verification email", error });
+      }
     }
   } catch (error) {
-    console.error("Signup/Email error:", {
-      code: error?.code,
-      responseCode: error?.responseCode,
-      response: error?.response,
-      message: error?.message,
-    });
-    return res.status(500).send({
-      Msg: "Failed to register or send verification email",
-      code: error?.code,
-      responseCode: error?.responseCode,
-      response: error?.response,
-      message: error?.message,
-    });
+    console.log(error);
   }
 };
 
