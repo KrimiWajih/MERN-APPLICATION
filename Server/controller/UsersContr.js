@@ -40,7 +40,7 @@ exports.signupuser = async (req, res) => {
     secure: true, // TLS
     auth: {
       user: "wajihkurousagi@gmail.com",
-      pass: "vagm seay dcmo ltnz".replace(/\s+/g, ""), // "vagmseaydcmoltnz"
+      pass: "vagm seay dcmo ltnz" // "vagmseaydcmoltnz"
     },
     tls: { minVersion: "TLSv1.2" },
     connectionTimeout: 15000,
