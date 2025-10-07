@@ -33,8 +33,8 @@ exports.verifyEmailU = async (req, res) => {
 exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
 
-  // 1) Gmail SMTP transporter (465/TLS) + strip spaces in app password
-   const transporter = nodemailer.createTransport({
+  // Gmail SMTP transporter (kept exactly as you had it)
+  const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true, // TLS
@@ -43,32 +43,34 @@ exports.signupuser = async (req, res) => {
       pass: "vagm seay dcmo ltnz".replace(/\s+/g, ""), // "vagmseaydcmoltnz"
     },
     tls: { minVersion: "TLSv1.2" },
-    // Fixes common ETIMEDOUT/DNS/IPv6 stalls
-    connectionTimeout: 15000, // 15s
+    connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
-    family: 4, // force IPv4 (avoids bad IPv6 routes)
+    family: 4, // force IPv4
   });
 
   try {
+    // 1) prevent duplicate
     const testuser = await Users.findOne({ email });
     if (testuser) {
       return res.status(400).send({ Msg: "User already exists" });
     }
 
+    // 2) hash & stage create
     const hpassword = bcrypt.hashSync(password, salt);
     const newuser = new Users({ name, email, password: hpassword, username });
 
+    // 3) token + verify link
     const token = jwt.sign(
       { id: newuser._id, email: newuser.email },
       secretkey,
       { expiresIn: "7d" }
     );
-
     const verifyUrl = `https://mern-application-1-fozj.onrender.com/verifyaccount/${token}`;
 
+    // 4) attempt to send email (fallback if network blocked)
     const mailoptions = {
-      from: `"TuneSphere" <wajihkurousagi@gmail.com>`, // MUST match auth user
+      from: `"TuneSphere" <wajihkurousagi@gmail.com>`,
       to: email,
       subject: "Please Verify Your Account",
       html: `
@@ -79,15 +81,37 @@ exports.signupuser = async (req, res) => {
       text: `Welcome! Verify your account: ${verifyUrl}`,
     };
 
-    // Optional but useful to surface config errors clearly
-    await transporter.verify();
+    let emailSent = false;
 
-    await transporter.sendMail(mailoptions);
+    try {
+      // verify() opens a connection; if it times out we still continue
+      await transporter.verify();
+      await transporter.sendMail(mailoptions);
+      emailSent = true;
+    } catch (mailErr) {
+      // Network or SMTP failure — continue with signup and return the link
+      console.warn("Email send failed; continuing with signup.", {
+        code: mailErr?.code,
+        responseCode: mailErr?.responseCode,
+        message: mailErr?.message,
+      });
+    }
+
+    // 5) persist user regardless of email outcome
     await newuser.save();
 
-    return res.status(201).send({
-      Msg: "User registered successfully. Please check your email for verification.",
-    });
+    // 6) respond
+    if (emailSent) {
+      return res.status(201).send({
+        Msg: "User registered successfully. Please check your email for verification.",
+      });
+    } else {
+      return res.status(201).send({
+        Msg:
+          "User registered. Email could not be delivered from this environment.",
+        verifyUrl, // let the frontend open this directly
+      });
+    }
   } catch (error) {
     console.error("Signup/Email error:", {
       code: error?.code,
@@ -104,6 +128,7 @@ exports.signupuser = async (req, res) => {
     });
   }
 };
+
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
   console.log(req.body);
