@@ -32,58 +32,71 @@ exports.verifyEmailU = async (req, res) => {
 
 exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
+
+  // 1) Gmail SMTP transporter (465/TLS) + strip spaces in app password
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // TLS
     auth: {
       user: "wajihkurousagi@gmail.com",
-      pass: "vagm seay dcmo ltnz",
+      pass: "vagm seay dcmo ltnz".replace(/\s+/g, ""), // -> "vagmseaydcmoltnz"
     },
+    tls: { minVersion: "TLSv1.2" },
   });
 
   try {
     const testuser = await Users.findOne({ email });
     if (testuser) {
       return res.status(400).send({ Msg: "User already exists" });
-    } else {
-      const hpassword = bcrypt.hashSync(password, salt);
-      const newuser = new Users({
-        name,
-        email,
-        password: hpassword,
-        username,
-      });
-      const token = jwt.sign(
-        {
-          id: newuser._id,
-          email: newuser.email,
-        },
-        secretkey,
-        { expiresIn: "7d" }
-      );
-
-      const mailoptions = {
-        to: email,
-        subject: "Please Verify Your Account",
-        html: `
-            <h1>Welcome to our website</h1>
-            <p>Please verify your account by clicking the link below:</p>
-            <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
-          `,
-      };
-      try {
-        await transporter.sendMail(mailoptions);
-        await newuser.save();
-        res.status(201).send({
-          Msg: "User registered successfully. Please check your email for verification.",
-        });
-      } catch (error) {
-        return res
-          .status(500)
-          .send({ Msg: "Failed to send verification email", error });
-      }
     }
+
+    const hpassword = bcrypt.hashSync(password, salt);
+    const newuser = new Users({ name, email, password: hpassword, username });
+
+    const token = jwt.sign(
+      { id: newuser._id, email: newuser.email },
+      secretkey,
+      { expiresIn: "7d" }
+    );
+
+    const verifyUrl = `https://mern-application-1-fozj.onrender.com/verifyaccount/${token}`;
+
+    const mailoptions = {
+      from: `"TuneSphere" <wajihkurousagi@gmail.com>`, // MUST match auth user
+      to: email,
+      subject: "Please Verify Your Account",
+      html: `
+        <h1>Welcome to our website</h1>
+        <p>Please verify your account by clicking the link below:</p>
+        <a href="${verifyUrl}">Verify Account</a>
+      `,
+      text: `Welcome! Verify your account: ${verifyUrl}`,
+    };
+
+    // Optional but useful to surface config errors clearly
+    await transporter.verify();
+
+    await transporter.sendMail(mailoptions);
+    await newuser.save();
+
+    return res.status(201).send({
+      Msg: "User registered successfully. Please check your email for verification.",
+    });
   } catch (error) {
-    console.log(error);
+    console.error("Signup/Email error:", {
+      code: error?.code,
+      responseCode: error?.responseCode,
+      response: error?.response,
+      message: error?.message,
+    });
+    return res.status(500).send({
+      Msg: "Failed to register or send verification email",
+      code: error?.code,
+      responseCode: error?.responseCode,
+      response: error?.response,
+      message: error?.message,
+    });
   }
 };
 exports.signin = async (req, res) => {
