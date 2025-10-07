@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const secretkey = process.env.SECRET_JWT;
 const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -32,26 +34,20 @@ exports.verifyEmailU = async (req, res) => {
 
 exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: "wajihkurousagi@gmail.com",
-      pass: "wnhm pomw mkpf vicf",
-    },
-  });
 
   try {
     const testuser = await Users.findOne({ email });
     if (testuser) {
-      return res.status(400).send({ Msg: "User already exists" });
-    } else {
-      const hpassword = bcrypt.hashSync(password, salt);
-      const newuser = new Users({
-        name,
-        email,
-        password: hpassword,
-        username,
-      });
+      return res.status(400).send({ Msg: 'User already exists' });
+    }
+
+    const hpassword = bcrypt.hashSync(password, salt);
+    const newuser = new Users({
+      name,
+      email,
+      password: hpassword,
+      username,
+    });
       const token = jwt.sign(
         {
           id: newuser._id,
@@ -61,29 +57,26 @@ exports.signupuser = async (req, res) => {
         { expiresIn: "7d" }
       );
 
-      const mailoptions = {
-        to: email,
-        subject: "Please Verify Your Account",
-        html: `
-            <h1>Welcome to our website</h1>
-            <p>Please verify your account by clicking the link below:</p>
-            <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
-          `,
-      };
-      try {
-        await transporter.sendMail(mailoptions);
-        await newuser.save();
-        res.status(201).send({
-          Msg: "User registered successfully. Please check your email for verification.",
-        });
-      } catch (error) {
-        return res
-          .status(500)
-          .send({ Msg: "Failed to send verification email", error });
-      }
-    }
+      const msg = {
+      to: email,
+      from: 'animea1993@gmail.com', // Verified sender
+      replyTo: 'noreply@tunesphere.com',
+      subject: 'Please Verify Your Account',
+      html: `
+        <h1>Welcome to our website</h1>
+        <p>Please verify your account by clicking the link below:</p>
+        <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
+      `,
+    };
+
+    await sgMail.send(msg);
+    await newuser.save();
+    res.status(201).send({
+      Msg: 'User registered successfully. Please check your email for verification.',
+    });
   } catch (error) {
-    console.log(error);
+    console.error('Error:', error);
+    res.status(500).send({ Msg: 'Failed to send verification email', error: error.message });
   }
 };
 
