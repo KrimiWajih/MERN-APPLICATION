@@ -34,15 +34,20 @@ exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
 
   // 1) Gmail SMTP transporter (465/TLS) + strip spaces in app password
-  const transporter = nodemailer.createTransport({
+   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true, // TLS
     auth: {
       user: "wajihkurousagi@gmail.com",
-      pass: "vagm seay dcmo ltnz".replace(/\s+/g, ""), // -> "vagmseaydcmoltnz"
+      pass: "vagm seay dcmo ltnz".replace(/\s+/g, ""), // "vagmseaydcmoltnz"
     },
     tls: { minVersion: "TLSv1.2" },
+    // Fixes common ETIMEDOUT/DNS/IPv6 stalls
+    connectionTimeout: 15000, // 15s
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+    family: 4, // force IPv4 (avoids bad IPv6 routes)
   });
 
   try {
