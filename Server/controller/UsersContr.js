@@ -32,6 +32,13 @@ exports.verifyEmailU = async (req, res) => {
 
 exports.signupuser = async (req, res) => {
   const { name, email, password, username } = req.body;
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "wajihkurousagi@gmail.com",
+      pass: "vagm seay dcmo ltnz",
+    },
+  });
 
   try {
     const testuser = await Users.findOne({ email });
@@ -45,7 +52,6 @@ exports.signupuser = async (req, res) => {
         password: hpassword,
         username,
       });
-
       const token = jwt.sign(
         {
           id: newuser._id,
@@ -55,36 +61,31 @@ exports.signupuser = async (req, res) => {
         { expiresIn: "7d" }
       );
 
-      // === Resend Email Sending ===
-      const { error } = await resend.emails.send({
-        from: "Wajih <onboarding@resend.dev>", // change to your verified domain later
+      const mailoptions = {
         to: email,
         subject: "Please Verify Your Account",
         html: `
-          <h1>Welcome to our website</h1>
-          <p>Please verify your account by clicking the link below:</p>
-          <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
-        `,
-        text: `Welcome! Verify your account: https://mern-application-1-fozj.onrender.com/verifyaccount/${token}`,
-      });
-
-      if (error) {
+            <h1>Welcome to our website</h1>
+            <p>Please verify your account by clicking the link below:</p>
+            <a href="https://mern-application-1-fozj.onrender.com/verifyaccount/${token}">Verify Account</a>
+          `,
+      };
+      try {
+        await transporter.sendMail(mailoptions);
+        await newuser.save();
+        res.status(201).send({
+          Msg: "User registered successfully. Please check your email for verification.",
+        });
+      } catch (error) {
         return res
           .status(500)
           .send({ Msg: "Failed to send verification email", error });
       }
-
-      await newuser.save();
-      res.status(201).send({
-        Msg: "User registered successfully. Please check your email for verification.",
-      });
     }
   } catch (error) {
     console.log(error);
-    res.status(500).send({ Msg: "Internal server error", error });
   }
 };
-
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
   console.log(req.body);
